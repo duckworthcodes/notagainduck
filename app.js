@@ -13,148 +13,222 @@ const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore(app);
 const auth = firebase.auth();
 
+// Array of funny loading messages
+const loadingMessages = [
+  "Hold on, we're summoning the code gods...",
+  "Loading your awesomeness...",
+  "Patience, young padawan...",
+  "Brewing some coffee for the server...",
+  "Counting to infinity...",
+  "Spinning up the hamster wheel...",
+  "Calibrating the flux capacitor...",
+  "Assembling the Avengers...",
+  "Warming up the quantum bits...",
+  "Loading... because faster than light is illegal.",
+];
+
 document.addEventListener('DOMContentLoaded', () => {
   const audio = document.getElementById('background-music');
   const playPauseBtn = document.getElementById('play-pause-btn');
-  const volumeSlider = document.getElementById('volume-slider');
-  const trackSelector = document.getElementById('track-selector');
-  const musicPlayerToggle = document.getElementById('music-player-toggle');
-  const musicPlayer = document.getElementById('music-player');
-  const musicPlayerContainer = document.getElementById('music-player-container');
+  const musicSectionToggle = document.getElementById('music-section-toggle');
+  const musicSectionContent = document.getElementById('music-section-content');
+  const musicFileInput = document.getElementById('music-file-input');
+  const addToPlaylistBtn = document.getElementById('add-to-playlist-btn');
+  const playlistSelector = document.getElementById('playlist-selector');
+  const volumeSlider = document.getElementById('volume-slider'); // Ensure this is defined
 
-  // Toggle visibility on icon click
-  musicPlayerToggle.addEventListener('click', () => {
-    musicPlayer.classList.toggle('visible');
+  let playlist = [];
+  let currentTrackIndex = 0;
+
+  // Debugging: Log elements to ensure they are correctly referenced
+  console.log('Audio element:', audio);
+  console.log('Play/Pause button:', playPauseBtn);
+  console.log('Music section toggle:', musicSectionToggle);
+  console.log('Music section content:', musicSectionContent);
+  console.log('Music file input:', musicFileInput);
+  console.log('Add to playlist button:', addToPlaylistBtn);
+  console.log('Playlist selector:', playlistSelector);
+  console.log('Volume slider:', volumeSlider);
+
+  // Toggle visibility of the music section
+  musicSectionToggle.addEventListener('click', () => {
+    musicSectionContent.classList.toggle('visible');
   });
 
-  // Hide music player when clicking outside
-  document.addEventListener('click', (event) => {
-    if (!musicPlayerContainer.contains(event.target)) {
-      musicPlayer.classList.remove('visible');
+  // Handle file selection
+  musicFileInput.addEventListener('change', (event) => {
+    const files = event.target.files;
+    if (files.length > 0) {
+      playlist = Array.from(files);
+      updatePlaylistSelector();
     }
   });
 
-  // Set the initial track
-  audio.src = trackSelector.value;
-
-  // Change track when a new option is selected
-  trackSelector.addEventListener('change', () => {
-    const selectedTrack = trackSelector.value;
-    audio.src = selectedTrack; // Update the audio source
-    audio.play(); // Automatically play the new track
-    playPauseBtn.textContent = '🎵 Pause Music';
+  // Add selected files to playlist
+  addToPlaylistBtn.addEventListener('click', () => {
+    const files = musicFileInput.files;
+    if (files.length > 0) {
+      playlist = playlist.concat(Array.from(files));
+      updatePlaylistSelector();
+    }
   });
+
+  // Update the playlist selector dropdown
+  function updatePlaylistSelector() {
+    playlistSelector.innerHTML = '';
+    playlist.forEach((file, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = file.name;
+      playlistSelector.appendChild(option);
+    });
+  }
 
   // Play/Pause Button
   playPauseBtn.addEventListener('click', () => {
     if (audio.paused) {
-      audio.play();
-      playPauseBtn.textContent = '🎵 Pause Music';
+      playTrack(currentTrackIndex);
     } else {
       audio.pause();
       playPauseBtn.textContent = '🎵 Play Music';
     }
   });
 
-  // Volume Control
-  volumeSlider.addEventListener('input', () => {
-    audio.volume = volumeSlider.value;
-  });
-
-  // Search functionality
-  const searchInput = document.getElementById('search-input');
-  searchInput.addEventListener('input', () => {
-    updateDisplay();
-  });
-
-  // Create Meeting
-  document.getElementById('create-meeting-btn').addEventListener('click', () => {
-    const title = document.getElementById('meeting-title').value;
-    const date = document.getElementById('meeting-date').value;
-    const time = document.getElementById('meeting-time').value;
-    const agenda = document.getElementById('meeting-agenda').value;
-    const userId = auth.currentUser.uid;
-
-    db.collection('meetings').add({
-      title,
-      date,
-      time,
-      agenda,
-      createdBy: userId,
-      participants: [userId]
-    })
-    .then(() => {
-      console.log('Meeting created');
-      loadMeetings();
-    })
-    .catch(error => console.error('Error creating meeting:', error));
-  });
-
-  // Load Meetings
-  function loadMeetings() {
-    const userId = auth.currentUser.uid;
-    db.collection('meetings')
-      .where('participants', 'array-contains', userId)
-      .onSnapshot(snapshot => {
-        const meetingsList = document.getElementById('meetings-list');
-        meetingsList.innerHTML = '';
-        snapshot.forEach(doc => {
-          const meeting = doc.data();
-          const li = document.createElement('li');
-          li.textContent = `${meeting.title} - ${meeting.date} at ${meeting.time}`;
-          meetingsList.appendChild(li);
+  // Play a specific track from the playlist
+  function playTrack(index) {
+    if (index >= 0 && index < playlist.length) {
+      const file = playlist[index];
+      const objectURL = URL.createObjectURL(file);
+      audio.src = objectURL;
+      audio.play()
+        .then(() => {
+          console.log('Audio is playing');
+          playPauseBtn.textContent = '🎵 Pause Music';
+        })
+        .catch((error) => {
+          console.error('Error playing audio:', error);
         });
-      });
-  }
-
-  // Save Note
-  document.getElementById('save-note-btn').addEventListener('click', () => {
-    const content = document.getElementById('note-content').value;
-    const userId = auth.currentUser.uid;
-
-    db.collection('notes').add({
-      content,
-      createdBy: userId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-      console.log('Note saved');
-      loadNotes();
-    })
-    .catch(error => console.error('Error saving note:', error));
-  });
-
-  // Load Notes
-  function loadNotes() {
-    const userId = auth.currentUser.uid;
-    db.collection('notes')
-      .where('createdBy', '==', userId)
-      .onSnapshot(snapshot => {
-        const notesList = document.getElementById('notes-list');
-        notesList.innerHTML = '';
-        snapshot.forEach(doc => {
-          const note = doc.data();
-          const li = document.createElement('li');
-          li.textContent = note.content;
-          notesList.appendChild(li);
-        });
-      });
-  }
-
-  // Listen for authentication state changes
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log(`Welcome, ${user.email}!`);
-      // Load meetings and notes for the logged-in user
-      loadMeetings();
-      loadNotes();
-    } else {
-      console.log('User is logged out');
-      // Clear meetings and notes if user logs out
-      document.getElementById('meetings-list').innerHTML = '';
-      document.getElementById('notes-list').innerHTML = '';
+      currentTrackIndex = index;
     }
+  }
+
+  // Change track when a new option is selected
+  playlistSelector.addEventListener('change', () => {
+    const selectedIndex = parseInt(playlistSelector.value);
+    playTrack(selectedIndex);
   });
+
+  // Volume Control
+  if (volumeSlider) { // Ensure volumeSlider exists
+    volumeSlider.addEventListener('input', () => {
+      if (audio) { // Ensure audio exists
+        audio.volume = volumeSlider.value;
+      }
+    });
+  } else {
+    console.error('Volume slider not found!');
+  }
+
+  // Automatically play the next track when the current one ends
+  audio.addEventListener('ended', () => {
+    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    playTrack(currentTrackIndex);
+  });
+});
+
+// Search functionality
+const searchInput = document.getElementById('search-input');
+searchInput.addEventListener('input', () => {
+  updateDisplay();
+});
+
+// Create Meeting
+document.getElementById('create-meeting-btn').addEventListener('click', () => {
+  const title = document.getElementById('meeting-title').value;
+  const date = document.getElementById('meeting-date').value;
+  const time = document.getElementById('meeting-time').value;
+  const agenda = document.getElementById('meeting-agenda').value;
+  const userId = auth.currentUser.uid;
+
+  db.collection('meetings').add({
+    title,
+    date,
+    time,
+    agenda,
+    createdBy: userId,
+    participants: [userId]
+  })
+  .then(() => {
+    console.log('Meeting created');
+    loadMeetings();
+  })
+  .catch(error => console.error('Error creating meeting:', error));
+});
+
+// Load Meetings
+function loadMeetings() {
+  const userId = auth.currentUser.uid;
+  db.collection('meetings')
+    .where('participants', 'array-contains', userId)
+    .onSnapshot(snapshot => {
+      const meetingsList = document.getElementById('meetings-list');
+      meetingsList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const meeting = doc.data();
+        const li = document.createElement('li');
+        li.textContent = `${meeting.title} - ${meeting.date} at ${meeting.time}`;
+        meetingsList.appendChild(li);
+      });
+    });
+}
+
+// Save Note
+document.getElementById('save-note-btn').addEventListener('click', () => {
+  const content = document.getElementById('note-content').value;
+  const userId = auth.currentUser.uid;
+
+  db.collection('notes').add({
+    content,
+    createdBy: userId,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    console.log('Note saved');
+    loadNotes();
+  })
+  .catch(error => console.error('Error saving note:', error));
+});
+
+// Load Notes
+function loadNotes() {
+  const userId = auth.currentUser.uid;
+  db.collection('notes')
+    .where('createdBy', '==', userId)
+    .onSnapshot(snapshot => {
+      const notesList = document.getElementById('notes-list');
+      notesList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const note = doc.data();
+        const li = document.createElement('li');
+        li.textContent = note.content;
+        notesList.appendChild(li);
+      });
+    });
+}
+
+// Listen for authentication state changes
+auth.onAuthStateChanged(user => {
+  if (user) {
+    console.log(`Welcome, ${user.email}!`);
+    // Load meetings and notes for the logged-in user
+    loadMeetings();
+    loadNotes();
+  } else {
+    console.log('User is logged out');
+    // Clear meetings and notes if user logs out
+    document.getElementById('meetings-list').innerHTML = '';
+    document.getElementById('notes-list').innerHTML = '';
+  }
 });
 
 // Enhanced chart configurations
@@ -515,6 +589,12 @@ const populateResourceFilter = (projects) => {
 // Update display with loading animation
 const updateDisplay = async () => {
   const loadingOverlay = document.getElementById('loading-overlay');
+  const loadingMessage = document.getElementById('loading-message'); // Ensure this element exists in your HTML
+
+  // Randomly select a message
+  const randomMessage = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+  loadingMessage.textContent = randomMessage;
+
   loadingOverlay.style.display = 'flex';
   
   try {
