@@ -356,8 +356,8 @@ header {
             </div>
             <div class="nav-menu" id="navMenu">
                 <ul>
-                    <li><a href="Index.html" class="link active">Home</a></li>
-                    <li><a href="index.html" class="link">Main Website</a></li>
+                    <li><a href="main.html" class="link active">Home</a></li>
+                    <li><a href="main.html" class="link">Main Website</a></li>
                 </ul>
             </div>
             <div class="nav-button">
@@ -528,7 +528,7 @@ header {
                 localStorage.setItem('isLoggedIn', 'true');
                 
                 // Redirect to main website or dashboard
-                window.location.href = "index.html";
+                window.location.href = "main.html";
             } catch (error) {
                 console.error(error.message);
                 alert(error.message);
@@ -558,7 +558,7 @@ header {
                 // Store login state in localStorage
                 localStorage.setItem('isLoggedIn', 'true');
                 
-                window.location.href = "index.html";
+                window.location.href = "main.html";
             } catch (error) {
                 console.error(error.message);
                 if (error.code === 'auth/wrong-password') {
@@ -607,7 +607,7 @@ header {
                 // Store login state in localStorage
                 localStorage.setItem('isLoggedIn', 'true');
                 
-                window.location.href = "index.html";
+                window.location.href = "main.html";
             } catch (error) {
                 console.error(error.message);
                 if (error.code === 'auth/email-already-in-use') {
